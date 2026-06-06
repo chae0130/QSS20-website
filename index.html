@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>State Disability Policy Index · SDPI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<style>
+:root {
+  --bg: #0c0f14;
+  --surface: #141820;
+  --surface2: #1c2230;
+  --border: rgba(255,255,255,0.07);
+  --ink: #e8eaf0;
+  --ink2: #8d93a5;
+  --ink3: #545c70;
+  --accent: #f0b429;
+  --accent2: #38bdf8;
+  --green: #34d399;
+  --red: #f87171;
+  --serif: 'DM Serif Display', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --mono: 'DM Mono', 'Courier New', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.6; overflow-x: hidden; }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: rgba(12,15,20,0.92);
+  backdrop-filter: blur(12px);
+  padding: 0 2rem;
+  height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.nav-brand {
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink);
+}
+.nav-brand em { color: var(--accent); font-style: normal; }
+.nav-links { display: flex; gap: 0; list-style: none; }
+.nav-links a {
+  font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink3); text-decoration: none;
+  padding: 0 1rem; height: 52px; display: flex; align-items: center;
+  transition: color 0.2s; border-left: 1px solid var(--border);
+}
+.nav-links a:hover { color: var(--ink); }
+
+/* ── HERO ── */
+#hero {
+  min-height: 100vh; display: flex; flex-direction: column;
+  justify-content: center; align-items: center; text-align: center;
+  padding: 8rem 2rem 6rem;
+  position: relative; overflow: hidden;
+}
+#hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(56,189,248,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(240,180,41,0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+/* subtle grid */
+#hero::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+.hero-inner { position: relative; z-index: 1; max-width: 820px; }
+.hero-kicker {
+  font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--accent);
+  margin-bottom: 1.5rem;
+  display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+}
+.hero-kicker span { width: 24px; height: 1px; background: var(--accent); opacity: 0.5; }
+#hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+  line-height: 1.05; color: var(--ink);
+  margin-bottom: 1.5rem; font-weight: 400;
+}
+#hero h1 em { color: var(--accent); font-style: italic; }
+.hero-sub {
+  font-size: 1rem; line-height: 1.75; color: var(--ink2);
+  max-width: 580px; margin: 0 auto 3.5rem;
+  font-weight: 300;
+}
+.hero-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 0; max-width: 720px; margin: 0 auto;
+  border: 1px solid var(--border); border-radius: 8px;
+  overflow: hidden; background: var(--surface);
+}
+.hero-stat {
+  padding: 1.75rem 1.5rem; border-right: 1px solid var(--border);
+  text-align: center;
+}
+.hero-stat:last-child { border-right: none; }
+.stat-num {
+  font-family: var(--serif); font-size: 2.6rem;
+  display: block; line-height: 1; margin-bottom: 0.5rem;
+}
+.stat-label {
+  font-family: var(--mono); font-size: 0.6rem;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink3);
+}
+.c-green { color: var(--green); }
+.c-amber { color: var(--accent); }
+.c-red   { color: var(--red); }
+.c-blue  { color: var(--accent2); }
+
+/* ── EXPLORE SECTION ── */
+#explore {
+  display: flex; min-height: 100vh; position: relative;
+  border-top: 1px solid var(--border);
+}
+#map-col {
+  flex: 1; position: sticky; top: 0; height: 100vh;
+  background: var(--surface); display: flex; flex-direction: column;
+  align-items: stretch; justify-content: stretch; overflow: hidden;
+}
+#map-header {
+  padding: 0.75rem 1.25rem; display: flex;
+  align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.map-title {
+  font-family: var(--mono); font-size: 0.62rem;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink3);
+}
+/* Method toggle */
+.method-toggle {
+  display: flex; gap: 0; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 4px; overflow: hidden;
+}
+.method-btn {
+  padding: 0.3rem 0.65rem;
+  font-family: var(--mono); font-size: 0.58rem;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink3); background: transparent; border: none;
+  cursor: pointer; transition: all 0.15s;
+}
+.method-btn.active { background: var(--accent); color: #000; font-weight: 500; }
+.method-btn:not(.active):hover { color: var(--ink); }
+
+#map-svg { flex: 1; display: block; width: 100%; }
+#map-legend {
+  padding: 0.75rem 1.25rem; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;
+}
+.legend-label {
+  font-family: var(--mono); font-size: 0.6rem;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink3);
+}
+
+/* State paths */
+.state-path { cursor: pointer; }
+.state-path:hover { opacity: 0.82; }
+.state-path.selected { stroke: var(--accent) !important; stroke-width: 2 !important; }
+
+/* Tooltip */
+#tooltip {
+  position: fixed; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 0.6rem 0.85rem; font-family: var(--mono);
+  font-size: 0.7rem; pointer-events: none; opacity: 0; z-index: 9999;
+  transition: opacity 0.1s; line-height: 1.6;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+#tooltip strong { color: var(--ink); display: block; margin-bottom: 2px; }
+#tooltip .tt-score { color: var(--accent2); }
+#tooltip .tt-rank  { color: var(--ink3); }
+
+/* ── STORY ── */
+#story {
+  width: 380px; min-width: 380px; padding: 6vh 2rem 6vh;
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 0;
+  background: var(--bg);
+}
+.story-card {
+  min-height: 70vh; display: flex; flex-direction: column;
+  justify-content: center; padding: 2.5rem 0;
+}
+.card-tag {
+  font-family: var(--mono); font-size: 0.6rem;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 0.75rem;
+}
+.story-card h2 {
+  font-family: var(--serif); font-size: 1.45rem; font-weight: 400;
+  line-height: 1.3; color: var(--ink); margin-bottom: 1rem;
+}
+.story-card p {
+  font-size: 0.875rem; line-height: 1.85;
+  color: var(--ink2); margin-bottom: 0.75rem; font-weight: 300;
+}
+.callout {
+  margin: 1.25rem 0; padding: 1rem 1.25rem;
+  border-left: 2px solid var(--accent);
+  background: rgba(240,180,41,0.05); border-radius: 0 4px 4px 0;
+}
+.callout-num {
+  font-family: var(--serif); font-size: 2.2rem;
+  color: var(--ink); display: block; line-height: 1; margin-bottom: 0.3rem;
+}
+.callout-text { font-size: 0.8rem; color: var(--ink2); line-height: 1.5; }
+.story-divider {
+  width: 32px; height: 1px; background: var(--border); margin: 3.5rem 0;
+}
+.story-hint { font-size: 0.78rem; color: var(--ink3); font-style: italic; margin-top: 0.5rem; }
+
+/* ── STATE PANEL ── */
+#panel {
+  position: fixed; top: 0; right: -520px; width: 520px; height: 100vh;
+  background: var(--surface); z-index: 900;
+  box-shadow: -12px 0 48px rgba(0,0,0,0.5);
+  transition: right 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow-y: auto; overflow-x: hidden;
+}
+#panel.open { right: 0; }
+.panel-header {
+  background: var(--surface2); padding: 1.25rem 1.5rem 1.5rem;
+  position: sticky; top: 0; z-index: 10;
+  border-bottom: 1px solid var(--border);
+}
+.panel-close {
+  position: absolute; top: 1rem; right: 1rem;
+  width: 28px; height: 28px; border: 1px solid var(--border);
+  background: transparent; color: var(--ink3); border-radius: 4px;
+  cursor: pointer; font-size: 0.85rem; display: flex;
+  align-items: center; justify-content: center; transition: all 0.15s;
+}
+.panel-close:hover { border-color: var(--accent); color: var(--accent); }
+.panel-region {
+  font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink3); margin-bottom: 0.2rem;
+}
+.panel-state-name {
+  font-family: var(--serif); font-size: 1.9rem; font-weight: 400;
+  color: var(--ink); line-height: 1; margin-bottom: 1rem;
+}
+.panel-score-row { display: flex; align-items: flex-start; gap: 1.5rem; }
+.p-score-main .p-score-val {
+  font-family: var(--mono); font-size: 3rem; font-weight: 500;
+  display: block; line-height: 1;
+}
+.p-score-main .p-score-label {
+  font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink3); margin-top: 0.25rem;
+}
+.p-meta { flex: 1; padding-top: 0.25rem; }
+.p-rank {
+  display: inline-block; background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border); border-radius: 3px;
+  padding: 0.2rem 0.5rem; font-family: var(--mono); font-size: 0.65rem;
+  color: var(--ink2); margin-bottom: 0.3rem;
+}
+.p-region-compare { font-family: var(--mono); font-size: 0.62rem; color: var(--ink3); }
+.p-methods {
+  display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap;
+}
+.p-method-chip {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 3px;
+  padding: 0.15rem 0.5rem; font-family: var(--mono); font-size: 0.58rem;
+  color: var(--ink3);
+}
+.p-method-chip span { color: var(--ink2); }
+
+/* Panel body */
+.panel-body { padding: 1.25rem 1.5rem; }
+.panel-sec-title {
+  font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink3); margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
+}
+.domain-block { margin-bottom: 1.1rem; }
+.domain-hdr {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 0.3rem;
+}
+.domain-name { font-size: 0.75rem; color: var(--ink); font-weight: 500; }
+.domain-score-val { font-family: var(--mono); font-size: 0.7rem; color: var(--ink2); }
+.bar-track {
+  height: 5px; background: rgba(255,255,255,0.07);
+  border-radius: 3px; overflow: hidden; margin-bottom: 0.5rem;
+}
+.bar-fill {
+  height: 100%; border-radius: 3px;
+  transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+/* indicator sub-rows */
+.ind-list { padding-left: 0; }
+.ind-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.ind-row:last-child { border-bottom: none; }
+.ind-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.ind-name { font-size: 0.72rem; color: var(--ink2); flex: 1; font-weight: 300; }
+.ind-bar-wrap {
+  width: 60px; height: 4px; background: rgba(255,255,255,0.07);
+  border-radius: 2px; overflow: hidden; flex-shrink: 0;
+}
+.ind-bar { height: 100%; border-radius: 2px; }
+.ind-val {
+  font-family: var(--mono); font-size: 0.65rem;
+  min-width: 32px; text-align: right; color: var(--ink3);
+}
+
+/* ── METHODOLOGY ── */
+#methodology {
+  background: var(--surface); padding: 7rem 2rem;
+  border-top: 1px solid var(--border);
+}
+.method-inner { max-width: 960px; margin: 0 auto; }
+.section-eyebrow {
+  font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem;
+}
+.section-title {
+  font-family: var(--serif); font-size: 2.4rem; font-weight: 400;
+  color: var(--ink); margin-bottom: 1rem;
+}
+.section-body {
+  font-size: 0.9rem; line-height: 1.8; color: var(--ink2);
+  max-width: 600px; margin-bottom: 4rem; font-weight: 300;
+}
+.method-cards {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--border); border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden; margin-bottom: 4rem;
+}
+.method-card { background: var(--bg); padding: 2rem; }
+.mc-label {
+  font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink3); margin-bottom: 0.5rem;
+}
+.mc-num {
+  font-family: var(--serif); font-size: 3rem; font-weight: 400;
+  color: var(--ink); display: block; line-height: 1; margin-bottom: 0.6rem;
+}
+.mc-desc { font-size: 0.82rem; line-height: 1.7; color: var(--ink2); font-weight: 300; }
+.domain-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;
+}
+.domain-chip {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 4px; padding: 0.6rem 0.75rem;
+  font-size: 0.78rem; color: var(--ink2);
+}
+.domain-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--bg); padding: 2.5rem 2rem;
+  border-top: 1px solid var(--border); text-align: center;
+}
+footer p {
+  font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.06em;
+  color: var(--ink3); margin-bottom: 0.3rem;
+}
+footer a { color: var(--ink2); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 960px) {
+  #explore { flex-direction: column; }
+  #map-col { position: relative; height: 60vw; min-height: 320px; }
+  #story { width: 100%; min-width: 0; padding: 3rem 1.5rem; border-left: none; border-top: 1px solid var(--border); }
+  #panel { width: 100%; right: -100%; }
+  .method-cards { grid-template-columns: 1fr; }
+  .domain-grid { grid-template-columns: repeat(2,1fr); }
+  .nav-links { display: none; }
+  .hero-stats { grid-template-columns: repeat(2,1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand"><em>SDPI</em> · State Disability Policy Index</div>
+  <ul class="nav-links">
+    <li><a href="#explore">Map</a></li>
+    <li><a href="#methodology">Methodology</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-inner">
+    <div class="hero-kicker"><span></span>QSS 20 · Dartmouth College · 2026<span></span></div>
+    <h1>Which States <em>Stand Up</em><br>for People with Disabilities?</h1>
+    <p class="hero-sub">
+      A 36-indicator composite index of disability policy generosity across all
+      50 U.S. states and D.C. — spanning income support, Medicaid access,
+      community-based services, employment policy, and pandemic-era relief.
+    </p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="stat-num c-green">0.50</span>
+        <span class="stat-label">Northeast<br>Mean SDPI</span>
+      </div>
+      <div class="hero-stat">
+        <span class="stat-num c-amber">2.4×</span>
+        <span class="stat-label">NE vs. South<br>Gap Ratio</span>
+      </div>
+      <div class="hero-stat">
+        <span class="stat-num c-red">0.20</span>
+        <span class="stat-label">South<br>Mean SDPI</span>
+      </div>
+      <div class="hero-stat">
+        <span class="stat-num c-blue">1.4<span style="font-size:1.8rem"> SD</span></span>
+        <span class="stat-label">Regional<br>Gap Width</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MAP + STORY -->
+<section id="explore">
+
+  <div id="map-col">
+    <div id="map-header">
+      <span class="map-title">Hover · Click any state for full breakdown</span>
+      <div class="method-toggle">
+        <button class="method-btn active" data-method="hybrid">Hybrid</button>
+        <button class="method-btn" data-method="minmax">Min-Max</button>
+        <button class="method-btn" data-method="zscore">Z-Score</button>
+      </div>
+    </div>
+    <svg id="map-svg"></svg>
+    <div id="map-legend">
+      <span class="legend-label">Low</span>
+      <svg id="legend-grad" width="160" height="10" style="flex-shrink:0"></svg>
+      <span class="legend-label">High</span>
+      <span class="legend-label" style="margin-left:auto;color:var(--ink2);" id="legend-method">SDPI Hybrid</span>
+    </div>
+  </div>
+
+  <div id="story">
+    <div class="story-card">
+      <div class="card-tag">The Question</div>
+      <h2>Measuring Generosity That Has No Official Answer</h2>
+      <p>No single official measure captures how generous U.S. states are toward people with disabilities. The State Disability Policy Index fills that gap.</p>
+      <p>Assembled from 36 indicators scraped from federal and state government websites — verified by calling regional program officers directly — the SDPI covers SSI supplements, HCBS expenditure ratios, Section 811 housing, subminimum wage policy, and more.</p>
+      <div class="callout">
+        <span class="callout-num">36</span>
+        <span class="callout-text">indicators across 6 policy domains, each rescaled to 0–1 where 1 = most generous to people with disabilities</span>
+      </div>
+      <p>Three normalization strategies — min-max, z-score, and a hybrid — allow the ranking to be stress-tested. Toggle between them above the map.</p>
+    </div>
+    <div class="story-divider"></div>
+    <div class="story-card">
+      <div class="card-tag">Headline Finding</div>
+      <h2>A Deep, Structural Regional Divide</h2>
+      <p>The geographic pattern is striking — and consistent across all three methods. Northeastern and Pacific states cluster at the top. Southern states occupy the bottom, almost without exception.</p>
+      <div class="callout">
+        <span class="callout-num">1.4 SD</span>
+        <span class="callout-text">gap between the Northeast mean (0.50) and the South mean (0.20) — a structural divide, not a few outliers</span>
+      </div>
+      <p>This reflects decades of divergent policy choices: cash transfers, Medicaid generosity, community-based service infrastructure, and pandemic-era reinvestment.</p>
+      <p class="story-hint">→ Click a dark red Southern state, then a bright green Northeastern one, to compare their full 36-indicator profiles.</p>
+    </div>
+    <div class="story-divider"></div>
+    <div class="story-card">
+      <div class="card-tag">Key Insight</div>
+      <h2>Community-Based Services Drive the Widest Differences</h2>
+      <p>PCA reveals that disability policy is genuinely multidimensional — no single domain explains everything. But Home & Community-Based Services (HCBS) captures the most interstate variation.</p>
+      <div class="callout">
+        <span class="callout-num">0.86 vs. 0.07</span>
+        <span class="callout-text">Massachusetts vs. Missouri on HCBS — whether a person with a disability can live in their community or must enter an institution to receive care</span>
+      </div>
+      <p>HCBS includes workforce density of home health aides, presumptive eligibility, and the share of Medicaid long-term care spending delivered at home versus in nursing facilities.</p>
+    </div>
+    <div class="story-divider"></div>
+    <div class="story-card">
+      <div class="card-tag">Limitations & Next Steps</div>
+      <h2>Policy on Paper ≠ Policy in Practice</h2>
+      <p>The SDPI captures formal policy generosity — what the law authorizes, not what recipients experience. A state can have generous statutes while creating enrollment barriers that exclude most eligible people.</p>
+      <p>Future work should connect SDPI scores to actual outcomes — employment rates, institutionalization, poverty — to test whether high-scoring states produce better lives.</p>
+      <p>The index weights each domain equally. A Section 811 housing slot counts the same as a Medicaid eligibility expansion affecting orders of magnitude more people. Alternative weighting schemes are a natural extension.</p>
+    </div>
+    <div style="height:15vh"></div>
+  </div>
+</section>
+
+<!-- METHODOLOGY -->
+<section id="methodology">
+  <div class="method-inner">
+    <div class="section-eyebrow">Methodology</div>
+    <h2 class="section-title">How the Index Was Built</h2>
+    <p class="section-body">
+      The SDPI aggregates 36 policy indicators across six substantive domains, each normalized
+      to a 0–1 generosity scale and verified against primary government sources. Three independent
+      aggregation methods confirm the ranking is robust to methodological choices.
+    </p>
+    <div class="method-cards">
+      <div class="method-card">
+        <div class="mc-label">Indicators</div>
+        <span class="mc-num">36</span>
+        <p class="mc-desc">Scraped from federal and state websites. Verified by calling regional program officers directly to confirm program details.</p>
+      </div>
+      <div class="method-card">
+        <div class="mc-label">Policy Domains</div>
+        <span class="mc-num">6</span>
+        <p class="mc-desc">Income & Cash Support · Medicaid & Long-Term Care · HCBS · Employment Support · ARP/Pandemic Relief · Housing & Education</p>
+      </div>
+      <div class="method-card">
+        <div class="mc-label">Normalization Methods</div>
+        <span class="mc-num">3</span>
+        <p class="mc-desc">Min-max, z-score, and a hybrid approach. Consistent rankings across all three confirm the findings are not methodological artifacts.</p>
+      </div>
+    </div>
+    <div class="section-eyebrow" style="margin-bottom:1rem">Six Policy Domains</div>
+    <div class="domain-grid" id="domain-pills"></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>State Disability Policy Index (SDPI) · QSS 20, Dartmouth College · Chae Lee · 2026</p>
+  <p>Data: KFF · UNH Center for Research on Disability · CMS · Federal &amp; State Government Sources</p>
+  <p style="margin-top:0.6rem">Built with D3.js · Deployed on <a href="https://vercel.com" target="_blank">Vercel</a></p>
+</footer>
+
+<!-- TOOLTIP -->
+<div id="tooltip"></div>
+
+<!-- STATE PANEL -->
+<div id="panel">
+  <div class="panel-header">
+    <button class="panel-close" id="panel-close-btn">✕</button>
+    <div class="panel-region" id="p-region"></div>
+    <div class="panel-state-name" id="p-name"></div>
+    <div class="panel-score-row">
+      <div class="p-score-main">
+        <span class="p-score-val" id="p-score"></span>
+        <span class="p-score-label" id="p-score-label">Hybrid SDPI</span>
+      </div>
+      <div class="p-meta">
+        <div class="p-rank" id="p-rank"></div>
+        <div class="p-region-compare" id="p-region-compare"></div>
+        <div class="p-methods" id="p-methods"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel-body">
+    <div class="panel-sec-title">Score by Policy Domain</div>
+    <div id="p-domains"></div>
+    <div class="panel-sec-title" style="margin-top:1.5rem">All 36 Indicators</div>
+    <div id="p-indicators"></div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const STATES  = [{"name": "Washington", "abbr": "WA", "fips": 53, "region": "West", "hybrid": 0.8382, "minmax": 0.6572, "zscore": 0.7272, "domains": [0.4792, 0.6743, 0.7, 0.7431, 0.4899, 0.9021], "indicators": {"avg_monthly_ssi_payment": 0.5248, "caps": 0.9879, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.3742, "ssi_auto_enroll_medicaid": 0.3516, "ssi_criteria_209": 0.5953, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.3655, "adl_medicaid_coverage_pct": 0.4091, "private_ltci_per1000": 1.0, "smd_demonstration_projects": 0.8421, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.4516, "hcbs_expenditure_ratio": 0.5, "hcbs_user_ratio": 1.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.8996, "vr_spending_training": 0.3298, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.4265, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.513, "livability_transportation": 0.7949, "livability_housing": 0.7156, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 1.0}, "rank": 1}, {"name": "Pennsylvania", "abbr": "PA", "fips": 42, "region": "Northeast", "hybrid": 0.6577, "minmax": 0.5897, "zscore": 0.513, "domains": [0.3542, 0.4674, 0.7, 0.6332, 0.6647, 0.8424], "indicators": {"avg_monthly_ssi_payment": 0.5663, "caps": 0.0972, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.3252, "ssi_auto_enroll_medicaid": 0.3672, "ssi_criteria_209": 0.478, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.3448, "adl_medicaid_coverage_pct": 0.8636, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.5789, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.4194, "hcbs_expenditure_ratio": 0.5, "hcbs_user_ratio": 1.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.3357, "vr_spending_training": 0.5638, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.4803, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 1.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.1565, "livability_transportation": 0.4966, "livability_housing": 0.7156, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 1.0}, "rank": 2}, {"name": "New York", "abbr": "NY", "fips": 36, "region": "Northeast", "hybrid": 0.6337, "minmax": 0.5014, "zscore": 0.4071, "domains": [0.4778, 0.4306, 0.5, 0.9134, 0.5615, 0.5094], "indicators": {"avg_monthly_ssi_payment": 0.3532, "caps": 0.1457, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.3804, "ssi_auto_enroll_medicaid": 0.5547, "ssi_criteria_209": 0.8886, "family_responsibility_class": 1.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.4586, "adl_medicaid_coverage_pct": 0.4545, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.7368, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.2258, "hcbs_expenditure_ratio": 0.5, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.7403, "vr_spending_training": 1.0, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.1864, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 1.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.1826, "livability_transportation": 0.6915, "livability_housing": 0.8555, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 3}, {"name": "California", "abbr": "CA", "fips": 6, "region": "West", "hybrid": 0.6175, "minmax": 0.6364, "zscore": 0.504, "domains": [0.4766, 0.6503, 0.6, 0.8234, 0.6614, 0.7392], "indicators": {"avg_monthly_ssi_payment": 0.0887, "caps": 0.3482, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.3865, "ssi_auto_enroll_medicaid": 0.75, "ssi_criteria_209": 0.739, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.5483, "adl_medicaid_coverage_pct": 0.3182, "private_ltci_per1000": 1.0, "smd_demonstration_projects": 0.6316, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.3548, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 1.0, "vr_spending_training": 0.4702, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.4122, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.5, "arp_cross_sector_investments": 0.8649, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.1913, "livability_transportation": 0.1983, "livability_housing": 0.4977, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 1.0}, "rank": 4}, {"name": "District of Columbia", "abbr": "DC", "fips": 11, "region": "South", "hybrid": 0.6095, "minmax": 0.5028, "zscore": 0.3858, "domains": [0.5445, 0.4562, 0.4, 0.6219, 0.6661, 0.3993], "indicators": {"avg_monthly_ssi_payment": 0.6184, "caps": 0.1781, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.1779, "ssi_auto_enroll_medicaid": 0.4844, "ssi_criteria_209": 0.8974, "family_responsibility_class": 1.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.3138, "adl_medicaid_coverage_pct": 0.3182, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.4737, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 1.0, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.6169, "vr_spending_training": 0.2489, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.6452, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 1.0, "arp_quality_improvement": 1.0, "livability_transportation": 0.4966, "livability_housing": 0.5, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 5}, {"name": "Massachusetts", "abbr": "MA", "fips": 25, "region": "Northeast", "hybrid": 0.6074, "minmax": 0.5606, "zscore": 0.415, "domains": [0.6176, 0.5057, 0.9, 0.7011, 0.4553, 0.6292], "indicators": {"avg_monthly_ssi_payment": 0.3507, "caps": 0.5506, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.4601, "ssi_auto_enroll_medicaid": 0.7344, "ssi_criteria_209": 0.8446, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.5828, "adl_medicaid_coverage_pct": 0.0909, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.6842, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.1935, "hcbs_expenditure_ratio": 0.5, "hcbs_user_ratio": 1.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.6098, "vr_spending_training": 0.4936, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.0932, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.287, "livability_transportation": 0.5542, "livability_housing": 0.5917, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 6}, {"name": "Vermont", "abbr": "VT", "fips": 50, "region": "Northeast", "hybrid": 0.5937, "minmax": 0.4595, "zscore": 0.319, "domains": [0.5265, 0.5161, 0.6, 0.7493, 0.5485, 0.427], "indicators": {"avg_monthly_ssi_payment": 0.1838, "caps": 0.3563, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.8773, "ssi_auto_enroll_medicaid": 0.5703, "ssi_criteria_209": 0.7243, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.7448, "adl_medicaid_coverage_pct": 0.7273, "private_ltci_per1000": 1.0, "smd_demonstration_projects": 0.9474, "initial_ar": 0.0, "reconsidered_ar": 0.0, "total_ar": 0.2258, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 1.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.8565, "vr_spending_training": 0.3915, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.1864, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.5, "arp_cross_sector_investments": 0.3784, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.2261, "livability_transportation": 0.4814, "livability_housing": 0.6537, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 7}, {"name": "Maine", "abbr": "ME", "fips": 23, "region": "Northeast", "hybrid": 0.5729, "minmax": 0.5643, "zscore": 0.3991, "domains": [0.5628, 0.6151, 0.4, 0.5366, 0.6231, 0.5813], "indicators": {"avg_monthly_ssi_payment": 0.1944, "caps": 0.1093, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.4172, "ssi_auto_enroll_medicaid": 0.7812, "ssi_criteria_209": 1.0, "family_responsibility_class": 1.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.5793, "adl_medicaid_coverage_pct": 0.9091, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.7895, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.2581, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.3099, "vr_spending_training": 0.3, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.1004, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 1.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.287, "livability_transportation": 0.5051, "livability_housing": 0.4014, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 8}, {"name": "Colorado", "abbr": "CO", "fips": 8, "region": "West", "hybrid": 0.5595, "minmax": 0.6021, "zscore": 0.4165, "domains": [0.448, 0.5141, 0.6, 0.7142, 0.6092, 0.7154], "indicators": {"avg_monthly_ssi_payment": 0.1896, "caps": 0.3644, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.2515, "ssi_auto_enroll_medicaid": 0.3359, "ssi_criteria_209": 0.4428, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.2897, "adl_medicaid_coverage_pct": 0.3182, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.6316, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.3871, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.6872, "vr_spending_training": 0.4553, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.3943, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 1.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.2609, "livability_transportation": 0.7695, "livability_housing": 0.8073, "section_811_pra": 0.0, "section_811_pct_disability": 1.0, "fema_shmp": 1.0}, "rank": 9}, {"name": "Minnesota", "abbr": "MN", "fips": 27, "region": "Midwest", "hybrid": 0.5478, "minmax": 0.5227, "zscore": 0.3316, "domains": [0.4894, 0.402, 0.4, 0.493, 0.4822, 0.7386], "indicators": {"avg_monthly_ssi_payment": 0.5674, "caps": 0.5182, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.6319, "ssi_auto_enroll_medicaid": 0.2109, "ssi_criteria_209": 0.4868, "family_responsibility_class": 1.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.4483, "adl_medicaid_coverage_pct": 0.5909, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.5789, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.0, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 0.0, "vr_spending_career": 0.8407, "vr_spending_training": 0.6383, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.1004, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.2973, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.4957, "livability_transportation": 0.8169, "livability_housing": 0.8761, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 10}, {"name": "Arizona", "abbr": "AZ", "fips": 4, "region": "West", "hybrid": 0.5328, "minmax": 0.5471, "zscore": 0.2559, "domains": [0.4481, 0.6655, 0.6, 0.5738, 0.5716, 0.4755], "indicators": {"avg_monthly_ssi_payment": 0.3352, "caps": 0.1457, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.0491, "ssi_auto_enroll_medicaid": 0.7266, "ssi_criteria_209": 0.3284, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.3483, "adl_medicaid_coverage_pct": 0.9091, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.4737, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.2581, "hcbs_expenditure_ratio": 1.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.4405, "vr_spending_training": 0.2809, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 1.0, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.0783, "livability_transportation": 0.6458, "livability_housing": 0.7317, "section_811_pra": 0.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 11}, {"name": "Oregon", "abbr": "OR", "fips": 41, "region": "West", "hybrid": 0.5195, "minmax": 0.4601, "zscore": 0.18, "domains": [0.4663, 0.4756, 0.4, 0.3651, 0.4424, 0.5515], "indicators": {"avg_monthly_ssi_payment": 0.3908, "caps": 0.0972, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.6933, "ssi_auto_enroll_medicaid": 0.5391, "ssi_criteria_209": 0.5103, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.6276, "adl_medicaid_coverage_pct": 0.5, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.8947, "initial_ar": 0.0, "reconsidered_ar": 1.0, "total_ar": 0.2581, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 1.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 0.0, "vr_spending_career": 0.7762, "vr_spending_training": 0.3191, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.4803, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.1739, "livability_transportation": 0.7576, "livability_housing": 1.0, "section_811_pra": 0.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 12}, {"name": "Alaska", "abbr": "AK", "fips": 2, "region": "West", "hybrid": 0.4972, "minmax": 0.4643, "zscore": 0.2655, "domains": [0.5657, 0.345, 0.6, 0.2149, 0.4362, 0.4749], "indicators": {"avg_monthly_ssi_payment": 0.055, "caps": 0.1336, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 0.0, "subminimum_wage_14c": 1.0, "ssi_auto_enroll_medicaid": 0.9922, "ssi_criteria_209": 0.8446, "family_responsibility_class": 1.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 1.0, "adl_medicaid_coverage_pct": 0.4091, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.6316, "initial_ar": 0.0, "reconsidered_ar": 0.0, "total_ar": 0.0645, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.3788, "vr_spending_training": 0.266, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.448, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 1.0, "arp_cross_sector_investments": 0.1081, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.0609, "livability_transportation": 0.5169, "livability_housing": 0.8578, "section_811_pra": 0.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 13}, {"name": "New Hampshire", "abbr": "NH", "fips": 33, "region": "Northeast", "hybrid": 0.4771, "minmax": 0.4423, "zscore": 0.1315, "domains": [0.5313, 0.7748, 0.2, 0.1333, 0.237, 0.63], "indicators": {"avg_monthly_ssi_payment": 0.0794, "caps": 0.2672, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.9755, "ssi_auto_enroll_medicaid": 1.0, "ssi_criteria_209": 0.4282, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.9897, "adl_medicaid_coverage_pct": 0.5, "private_ltci_per1000": 1.0, "smd_demonstration_projects": 1.0, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.4839, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 0.0, "vr_spending_career": 0.0, "vr_spending_training": 0.4, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.2222, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.2, "livability_transportation": 0.5424, "livability_housing": 0.6078, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 14}, {"name": "Wisconsin", "abbr": "WI", "fips": 55, "region": "Midwest", "hybrid": 0.4554, "minmax": 0.4326, "zscore": 0.0858, "domains": [0.293, 0.4659, 0.4, 0.6266, 0.4647, 0.7986], "indicators": {"avg_monthly_ssi_payment": 0.4034, "caps": 0.332, "ui_good_cause_caregiving": 0.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.5215, "ssi_auto_enroll_medicaid": 0.5625, "ssi_criteria_209": 0.5249, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.5414, "adl_medicaid_coverage_pct": 0.6364, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.7895, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.2258, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.5265, "vr_spending_training": 0.3532, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.1756, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.2609, "livability_transportation": 1.0, "livability_housing": 0.9931, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 15}, {"name": "Texas", "abbr": "TX", "fips": 48, "region": "South", "hybrid": 0.427, "minmax": 0.5039, "zscore": 0.0781, "domains": [0.5342, 0.5419, 0.4, 0.6243, 0.4709, 0.4562], "indicators": {"avg_monthly_ssi_payment": 0.139, "caps": 1.0, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.3436, "ssi_auto_enroll_medicaid": 0.4453, "ssi_criteria_209": 0.346, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.3897, "adl_medicaid_coverage_pct": 0.7727, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.2632, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.4516, "hcbs_expenditure_ratio": 1.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.439, "vr_spending_training": 0.434, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.6953, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.1304, "livability_transportation": 0.4898, "livability_housing": 0.7913, "section_811_pra": 0.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 16}, {"name": "Rhode Island", "abbr": "RI", "fips": 44, "region": "Northeast", "hybrid": 0.4233, "minmax": 0.4336, "zscore": 0.0579, "domains": [0.4415, 0.3935, 0.4, 0.5516, 0.4912, 0.5812], "indicators": {"avg_monthly_ssi_payment": 0.3677, "caps": 0.1538, "ui_good_cause_caregiving": 0.0, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.7362, "ssi_auto_enroll_medicaid": 0.5938, "ssi_criteria_209": 0.6804, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.6759, "adl_medicaid_coverage_pct": 0.0, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.7368, "initial_ar": 0.0, "reconsidered_ar": 1.0, "total_ar": 0.129, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.5165, "vr_spending_training": 0.1383, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.957, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.5, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.1391, "livability_transportation": 0.3441, "livability_housing": 0.5619, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 17}, {"name": "Nebraska", "abbr": "NE", "fips": 31, "region": "Midwest", "hybrid": 0.3858, "minmax": 0.3339, "zscore": -0.0168, "domains": [0.3539, 0.6063, 0.4, 0.1504, 0.4815, 0.361], "indicators": {"avg_monthly_ssi_payment": 0.1833, "caps": 0.919, "ui_good_cause_caregiving": 0.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.9141, "ssi_auto_enroll_medicaid": 0.4219, "ssi_criteria_209": 0.393, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.7, "adl_medicaid_coverage_pct": 0.8636, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.4737, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.4194, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.2683, "vr_spending_training": 0.183, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.3943, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.5, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.6435, "livability_transportation": 0.4288, "livability_housing": 0.3761, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 18}, {"name": "Louisiana", "abbr": "LA", "fips": 22, "region": "South", "hybrid": 0.3635, "minmax": 0.5245, "zscore": 0.1859, "domains": [0.4322, 0.6261, 0.8, 0.4428, 0.5902, 0.4672], "indicators": {"avg_monthly_ssi_payment": 0.3937, "caps": 0.085, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.2761, "ssi_auto_enroll_medicaid": 0.5547, "ssi_criteria_209": 0.6481, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.4, "adl_medicaid_coverage_pct": 0.6818, "private_ltci_per1000": 1.0, "smd_demonstration_projects": 0.2632, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.2903, "hcbs_expenditure_ratio": 1.0, "hcbs_user_ratio": 1.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.1263, "vr_spending_training": 0.2021, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.4194, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 1.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.1217, "livability_transportation": 0.0678, "livability_housing": 0.2683, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 19}, {"name": "Connecticut", "abbr": "CT", "fips": 9, "region": "Northeast", "hybrid": 0.3591, "minmax": 0.4717, "zscore": 0.0979, "domains": [0.472, 0.4888, 0.2, 0.2767, 0.4959, 0.5795], "indicators": {"avg_monthly_ssi_payment": 0.3723, "caps": 0.6761, "ui_good_cause_caregiving": 0.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.638, "ssi_auto_enroll_medicaid": 0.4062, "ssi_criteria_209": 0.6833, "family_responsibility_class": 1.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.5379, "adl_medicaid_coverage_pct": 0.1818, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.4211, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.2581, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 0.0, "vr_spending_career": 0.4089, "vr_spending_training": 0.4213, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.1828, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.4189, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.3739, "livability_transportation": 0.3881, "livability_housing": 0.5092, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 20}, {"name": "New Mexico", "abbr": "NM", "fips": 35, "region": "West", "hybrid": 0.3517, "minmax": 0.457, "zscore": -0.0194, "domains": [0.3875, 0.5797, 0.2, 0.7224, 0.4085, 0.5135], "indicators": {"avg_monthly_ssi_payment": 0.1555, "caps": 0.0, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.5276, "ssi_auto_enroll_medicaid": 0.6953, "ssi_criteria_209": 0.7214, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.6034, "adl_medicaid_coverage_pct": 0.6364, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.5263, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.4516, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.6184, "vr_spending_training": 0.5489, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.2509, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.2, "livability_transportation": 0.7051, "livability_housing": 0.8624, "section_811_pra": 0.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 21}, {"name": "Maryland", "abbr": "MD", "fips": 24, "region": "South", "hybrid": 0.3426, "minmax": 0.3616, "zscore": -0.0916, "domains": [0.3851, 0.1956, 0.4, 0.5462, 0.2613, 0.6629], "indicators": {"avg_monthly_ssi_payment": 0.5272, "caps": 0.2632, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.681, "ssi_auto_enroll_medicaid": 0.6406, "ssi_criteria_209": 0.4692, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.6655, "adl_medicaid_coverage_pct": 0.1818, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.5263, "initial_ar": 0.0, "reconsidered_ar": 0.0, "total_ar": 0.3871, "hcbs_expenditure_ratio": 1.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.3515, "vr_spending_training": 0.2872, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.3154, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.2522, "livability_transportation": 0.5712, "livability_housing": 0.7431, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 22}, {"name": "Delaware", "abbr": "DE", "fips": 10, "region": "South", "hybrid": 0.3256, "minmax": 0.4679, "zscore": 0.1255, "domains": [0.4768, 0.2905, 0.6, 0.4885, 0.5658, 0.4505], "indicators": {"avg_monthly_ssi_payment": 0.4862, "caps": 0.1053, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.4172, "ssi_auto_enroll_medicaid": 0.6953, "ssi_criteria_209": 0.61, "family_responsibility_class": 1.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.5414, "adl_medicaid_coverage_pct": 0.6364, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.2105, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.2258, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 1.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.3357, "vr_spending_training": 0.1298, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.1254, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 1.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.2696, "livability_transportation": 0.5712, "livability_housing": 0.6812, "section_811_pra": 0.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 23}, {"name": "Michigan", "abbr": "MI", "fips": 26, "region": "Midwest", "hybrid": 0.3237, "minmax": 0.4053, "zscore": 0.0133, "domains": [0.2486, 0.5212, 0.6, 0.4739, 0.2729, 0.6641], "indicators": {"avg_monthly_ssi_payment": 0.4995, "caps": 0.0769, "ui_good_cause_caregiving": 0.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.3742, "ssi_auto_enroll_medicaid": 0.4609, "ssi_criteria_209": 0.5777, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.4138, "adl_medicaid_coverage_pct": 0.3636, "private_ltci_per1000": 1.0, "smd_demonstration_projects": 0.5263, "initial_ar": 0.0, "reconsidered_ar": 0.0, "total_ar": 0.3871, "hcbs_expenditure_ratio": 1.0, "hcbs_user_ratio": 1.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.2281, "vr_spending_training": 0.1936, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.147, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.1391, "livability_transportation": 0.5153, "livability_housing": 0.805, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 24}, {"name": "Missouri", "abbr": "MO", "fips": 29, "region": "Midwest", "hybrid": 0.3126, "minmax": 0.46, "zscore": -0.0092, "domains": [0.4336, 0.4574, 0.0, 0.2473, 0.4702, 0.8122], "indicators": {"avg_monthly_ssi_payment": 0.2554, "caps": 0.4939, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.6012, "ssi_auto_enroll_medicaid": 0.4219, "ssi_criteria_209": 0.1965, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.5241, "adl_medicaid_coverage_pct": 0.5909, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.4211, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.5806, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 0.0, "vr_spending_career": 0.429, "vr_spending_training": 0.3128, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.3943, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.1486, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.2783, "livability_transportation": 0.5746, "livability_housing": 0.4862, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 1.0}, "rank": 25}, {"name": "Virginia", "abbr": "VA", "fips": 51, "region": "South", "hybrid": 0.2869, "minmax": 0.359, "zscore": -0.1265, "domains": [0.4707, 0.1886, 0.4, 0.2091, 0.425, 0.6224], "indicators": {"avg_monthly_ssi_payment": 0.3304, "caps": 0.1984, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.6748, "ssi_auto_enroll_medicaid": 0.7187, "ssi_criteria_209": 0.3431, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.6966, "adl_medicaid_coverage_pct": 0.3182, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.2632, "initial_ar": 0.0, "reconsidered_ar": 0.0, "total_ar": 0.4194, "hcbs_expenditure_ratio": 1.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 0.0, "vr_spending_career": 0.3357, "vr_spending_training": 0.2915, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.147, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 1.0, "arp_cross_sector_investments": 0.0811, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.3217, "livability_transportation": 0.4881, "livability_housing": 0.6239, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 26}, {"name": "Florida", "abbr": "FL", "fips": 12, "region": "South", "hybrid": 0.2813, "minmax": 0.3825, "zscore": -0.0433, "domains": [0.3607, 0.5277, 0.5, 0.4703, 0.4237, 0.4073], "indicators": {"avg_monthly_ssi_payment": 0.2488, "caps": 0.6883, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.2393, "ssi_auto_enroll_medicaid": 0.3984, "ssi_criteria_209": 0.3109, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.3103, "adl_medicaid_coverage_pct": 0.7273, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.4211, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.2903, "hcbs_expenditure_ratio": 0.5, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.2726, "vr_spending_training": 0.1383, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.3154, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.1486, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.0783, "livability_transportation": 0.578, "livability_housing": 0.4587, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 27}, {"name": "Kansas", "abbr": "KS", "fips": 20, "region": "Midwest", "hybrid": 0.2782, "minmax": 0.3291, "zscore": -0.1185, "domains": [0.3994, 0.467, 0.4, 0.2264, 0.2805, 0.4378], "indicators": {"avg_monthly_ssi_payment": 0.3134, "caps": 0.2429, "ui_good_cause_caregiving": 0.0, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.7423, "ssi_auto_enroll_medicaid": 0.5625, "ssi_criteria_209": 0.3343, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.6655, "adl_medicaid_coverage_pct": 0.6364, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.5789, "initial_ar": 0.0, "reconsidered_ar": 1.0, "total_ar": 0.3226, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.4089, "vr_spending_training": 0.2702, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.2222, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.4609, "livability_transportation": 0.478, "livability_housing": 0.711, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 28}, {"name": "Ohio", "abbr": "OH", "fips": 39, "region": "Midwest", "hybrid": 0.2717, "minmax": 0.4475, "zscore": -0.0701, "domains": [0.358, 0.6192, 0.2, 0.5855, 0.385, 0.4612], "indicators": {"avg_monthly_ssi_payment": 0.5075, "caps": 0.4049, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.2147, "ssi_auto_enroll_medicaid": 0.25, "ssi_criteria_209": 0.4868, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.231, "adl_medicaid_coverage_pct": 0.5455, "private_ltci_per1000": 1.0, "smd_demonstration_projects": 0.4737, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.3226, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.4778, "vr_spending_training": 0.2787, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.1362, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.1739, "livability_transportation": 0.4458, "livability_housing": 0.8601, "section_811_pra": 0.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 29}, {"name": "North Dakota", "abbr": "ND", "fips": 38, "region": "Midwest", "hybrid": 0.2531, "minmax": 0.3527, "zscore": -0.1075, "domains": [0.4155, 0.4207, 0.0, 0.115, 0.4657, 0.5295], "indicators": {"avg_monthly_ssi_payment": 0.003, "caps": 0.3725, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.7791, "ssi_auto_enroll_medicaid": 0.5078, "ssi_criteria_209": 0.1613, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.6621, "adl_medicaid_coverage_pct": 1.0, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.7368, "initial_ar": 0.0, "reconsidered_ar": 1.0, "total_ar": 0.3871, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 0.0, "vr_spending_career": 0.0789, "vr_spending_training": 0.266, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.1505, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.6435, "livability_transportation": 0.0949, "livability_housing": 0.5528, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 1.0}, "rank": 30}, {"name": "Iowa", "abbr": "IA", "fips": 19, "region": "Midwest", "hybrid": 0.2518, "minmax": 0.36, "zscore": -0.1336, "domains": [0.4881, 0.5903, 0.2, 0.4511, 0.2869, 0.3634], "indicators": {"avg_monthly_ssi_payment": 0.2612, "caps": 0.3725, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.6871, "ssi_auto_enroll_medicaid": 0.25, "ssi_criteria_209": 0.3343, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.4966, "adl_medicaid_coverage_pct": 0.8182, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.5789, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.4194, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.2023, "vr_spending_training": 0.1511, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.1649, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.5565, "livability_transportation": 0.2847, "livability_housing": 0.5321, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 31}, {"name": "South Dakota", "abbr": "SD", "fips": 46, "region": "Midwest", "hybrid": 0.2508, "minmax": 0.4139, "zscore": -0.053, "domains": [0.3724, 0.2188, 0.4, 0.4226, 0.4864, 0.498], "indicators": {"avg_monthly_ssi_payment": 0.1295, "caps": 0.081, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.3006, "ssi_auto_enroll_medicaid": 0.1953, "ssi_criteria_209": 0.2727, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.2552, "adl_medicaid_coverage_pct": 0.9091, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.5789, "initial_ar": 0.0, "reconsidered_ar": 0.0, "total_ar": 0.2258, "hcbs_expenditure_ratio": 1.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.1679, "vr_spending_training": 0.1, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.1792, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 1.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.7391, "livability_transportation": 0.2746, "livability_housing": 0.2156, "section_811_pra": 0.0, "section_811_pct_disability": 1.0, "fema_shmp": 1.0}, "rank": 32}, {"name": "Nevada", "abbr": "NV", "fips": 32, "region": "West", "hybrid": 0.2141, "minmax": 0.3304, "zscore": -0.1958, "domains": [0.3268, 0.2055, 0.4, 0.129, 0.5195, 0.4568], "indicators": {"avg_monthly_ssi_payment": 0.3362, "caps": 0.1093, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.319, "ssi_auto_enroll_medicaid": 0.5625, "ssi_criteria_209": 0.2874, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.4276, "adl_medicaid_coverage_pct": 0.5, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.6316, "initial_ar": 0.0, "reconsidered_ar": 0.0, "total_ar": 0.2903, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.2869, "vr_spending_training": 0.1, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.0824, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 1.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.0348, "livability_transportation": 0.4814, "livability_housing": 0.8028, "section_811_pra": 0.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 33}, {"name": "North Carolina", "abbr": "NC", "fips": 37, "region": "South", "hybrid": 0.213, "minmax": 0.4412, "zscore": -0.0725, "domains": [0.1988, 0.381, 0.4, 0.5201, 0.4974, 0.7433], "indicators": {"avg_monthly_ssi_payment": 0.2157, "caps": 0.336, "ui_good_cause_caregiving": 0.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.2638, "ssi_auto_enroll_medicaid": 0.4844, "ssi_criteria_209": 0.2903, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.3621, "adl_medicaid_coverage_pct": 0.5455, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.2632, "initial_ar": 0.0, "reconsidered_ar": 1.0, "total_ar": 0.2581, "hcbs_expenditure_ratio": 1.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.3902, "vr_spending_training": 0.1702, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.5305, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.2973, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.1565, "livability_transportation": 0.1017, "livability_housing": 0.6147, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 1.0}, "rank": 34}, {"name": "Montana", "abbr": "MT", "fips": 30, "region": "West", "hybrid": 0.2001, "minmax": 0.4056, "zscore": -0.1639, "domains": [0.2312, 0.5928, 0.2, 0.5048, 0.4132, 0.6053], "indicators": {"avg_monthly_ssi_payment": 0.0, "caps": 0.0162, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.3129, "ssi_auto_enroll_medicaid": 0.4922, "ssi_criteria_209": 0.5279, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.3931, "adl_medicaid_coverage_pct": 0.8182, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.7368, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.3871, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.3314, "vr_spending_training": 0.183, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.2186, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.2609, "livability_transportation": 0.4373, "livability_housing": 0.5894, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 35}, {"name": "Idaho", "abbr": "ID", "fips": 16, "region": "West", "hybrid": 0.1887, "minmax": 0.2398, "zscore": -0.3054, "domains": [0.3918, 0.2291, 0.2, 0.2635, 0.2227, 0.2907], "indicators": {"avg_monthly_ssi_payment": 0.3032, "caps": 0.2713, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.4356, "ssi_auto_enroll_medicaid": 0.2578, "ssi_criteria_209": 0.3666, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.3586, "adl_medicaid_coverage_pct": 0.5909, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.7895, "initial_ar": 0.0, "reconsidered_ar": 0.0, "total_ar": 0.3226, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.4032, "vr_spending_training": 0.3872, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.2258, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0405, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.0696, "livability_transportation": 0.7034, "livability_housing": 0.75, "section_811_pra": 0.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 36}, {"name": "Wyoming", "abbr": "WY", "fips": 56, "region": "West", "hybrid": 0.1879, "minmax": 0.3636, "zscore": -0.1578, "domains": [0.2798, 0.5788, 0.4, 0.5073, 0.4361, 0.1962], "indicators": {"avg_monthly_ssi_payment": 0.1131, "caps": 0.0972, "ui_good_cause_caregiving": 0.0, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.6012, "ssi_auto_enroll_medicaid": 0.1953, "ssi_criteria_209": 0.2317, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.4241, "adl_medicaid_coverage_pct": 0.8636, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.6316, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.2903, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.175, "vr_spending_training": 0.3468, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.4516, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.1652, "livability_transportation": 0.4169, "livability_housing": 0.5642, "section_811_pra": 0.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 37}, {"name": "Georgia", "abbr": "GA", "fips": 13, "region": "South", "hybrid": 0.1836, "minmax": 0.4707, "zscore": -0.0306, "domains": [0.4593, 0.3617, 0.4, 0.4794, 0.3573, 0.8263], "indicators": {"avg_monthly_ssi_payment": 0.262, "caps": 0.17, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.135, "ssi_auto_enroll_medicaid": 0.7734, "ssi_criteria_209": 0.3343, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.4172, "adl_medicaid_coverage_pct": 0.6364, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.1053, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.0968, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.2999, "vr_spending_training": 0.1383, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.0394, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 1.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.1043, "livability_transportation": 0.3814, "livability_housing": 0.75, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 1.0}, "rank": 38}, {"name": "Illinois", "abbr": "IL", "fips": 17, "region": "Midwest", "hybrid": 0.1551, "minmax": 0.3577, "zscore": -0.2015, "domains": [0.3905, 0.3678, 0.4, 0.2616, 0.2928, 0.575], "indicators": {"avg_monthly_ssi_payment": 0.4503, "caps": 0.0688, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.362, "ssi_auto_enroll_medicaid": 0.4141, "ssi_criteria_209": 0.3284, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.3862, "adl_medicaid_coverage_pct": 0.3182, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.3158, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.2903, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 0.0, "vr_spending_career": 0.4677, "vr_spending_training": 0.317, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.1183, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.287, "livability_transportation": 0.2305, "livability_housing": 0.6445, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 39}, {"name": "New Jersey", "abbr": "NJ", "fips": 34, "region": "Northeast", "hybrid": 0.1418, "minmax": 0.3845, "zscore": -0.2268, "domains": [0.2163, 0.3555, 0.4, 0.6442, 0.4547, 0.6512], "indicators": {"avg_monthly_ssi_payment": 0.0558, "caps": 0.0445, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.3497, "ssi_auto_enroll_medicaid": 0.2969, "ssi_criteria_209": 0.4839, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.3276, "adl_medicaid_coverage_pct": 0.1364, "private_ltci_per1000": 1.0, "smd_demonstration_projects": 0.3158, "initial_ar": 0.0, "reconsidered_ar": 1.0, "total_ar": 0.4194, "hcbs_expenditure_ratio": 1.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.6112, "vr_spending_training": 0.3213, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.1505, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.2261, "livability_transportation": 0.5542, "livability_housing": 0.7018, "section_811_pra": 1.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 40}, {"name": "West Virginia", "abbr": "WV", "fips": 54, "region": "South", "hybrid": 0.1368, "minmax": 0.299, "zscore": -0.2203, "domains": [0.1471, 0.549, 0.4, 0.4431, 0.2515, 0.3775], "indicators": {"avg_monthly_ssi_payment": 0.4043, "caps": 0.1012, "ui_good_cause_caregiving": 0.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.092, "ssi_auto_enroll_medicaid": 0.2656, "ssi_criteria_209": 0.3138, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.169, "adl_medicaid_coverage_pct": 1.0, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.5789, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.1935, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 1.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.142, "vr_spending_training": 0.1872, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.509, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.0, "livability_transportation": 0.0847, "livability_housing": 0.8028, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 41}, {"name": "Mississippi", "abbr": "MS", "fips": 28, "region": "South", "hybrid": 0.1185, "minmax": 0.3317, "zscore": -0.2002, "domains": [0.4512, 0.3914, 0.7, 0.4327, 0.3207, 0.0302], "indicators": {"avg_monthly_ssi_payment": 0.1669, "caps": 0.2632, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.227, "ssi_auto_enroll_medicaid": 0.8984, "ssi_criteria_209": 0.5543, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.5241, "adl_medicaid_coverage_pct": 0.7727, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.0, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.2258, "hcbs_expenditure_ratio": 0.5, "hcbs_user_ratio": 1.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.2109, "vr_spending_training": 0.0872, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.8459, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.0783, "livability_transportation": 0.0407, "livability_housing": 0.1101, "section_811_pra": 0.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 42}, {"name": "Indiana", "abbr": "IN", "fips": 18, "region": "Midwest", "hybrid": 0.106, "minmax": 0.3464, "zscore": -0.3158, "domains": [0.343, 0.3017, 0.2, 0.4471, 0.4406, 0.3333], "indicators": {"avg_monthly_ssi_payment": 0.4268, "caps": 0.081, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.362, "ssi_auto_enroll_medicaid": 0.4141, "ssi_criteria_209": 0.4604, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.3862, "adl_medicaid_coverage_pct": 0.6818, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.4211, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.2258, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.1392, "vr_spending_training": 0.2021, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.1792, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.113, "livability_transportation": 0.2881, "livability_housing": 0.3784, "section_811_pra": 0.0, "section_811_pct_disability": 1.0, "fema_shmp": 0.0}, "rank": 43}, {"name": "Hawaii", "abbr": "HI", "fips": 15, "region": "West", "hybrid": 0.0987, "minmax": 0.3109, "zscore": -0.2433, "domains": [0.2174, 0.4668, 0.4, 0.1287, 0.5318, 0.4289], "indicators": {"avg_monthly_ssi_payment": 0.098, "caps": 0.0121, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.2761, "ssi_auto_enroll_medicaid": 0.3984, "ssi_criteria_209": 0.4545, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.331, "adl_medicaid_coverage_pct": 0.0909, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.2632, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.5161, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 1.0, "hcbs_presumptive_eligibility": 0.0, "vr_spending_career": 0.2841, "vr_spending_training": 0.1021, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.1004, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.7391, "livability_transportation": 0.2797, "livability_housing": 0.8647, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 44}, {"name": "Arkansas", "abbr": "AR", "fips": 5, "region": "South", "hybrid": 0.0962, "minmax": 0.3249, "zscore": -0.28, "domains": [0.4032, 0.3151, 0.4, 0.504, 0.4016, 0.244], "indicators": {"avg_monthly_ssi_payment": 0.3727, "caps": 0.0567, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.3067, "ssi_auto_enroll_medicaid": 0.5234, "ssi_criteria_209": 0.4663, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.4034, "adl_medicaid_coverage_pct": 0.8182, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.4211, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.1935, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.3099, "vr_spending_training": 0.2021, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.3082, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0405, "arp_workforce_training": 1.0, "arp_quality_improvement": 0.0609, "livability_transportation": 0.0, "livability_housing": 0.2202, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 45}, {"name": "Utah", "abbr": "UT", "fips": 49, "region": "West", "hybrid": 0.0906, "minmax": 0.2553, "zscore": -0.2939, "domains": [0.2738, 0.5233, 0.4, 0.0483, 0.1822, 0.3438], "indicators": {"avg_monthly_ssi_payment": 0.3232, "caps": 0.085, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.4049, "ssi_auto_enroll_medicaid": 0.1016, "ssi_criteria_209": 0.2757, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.2724, "adl_medicaid_coverage_pct": 0.4545, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.7895, "initial_ar": 1.0, "reconsidered_ar": 1.0, "total_ar": 0.1935, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.0918, "vr_spending_training": 0.0532, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.0323, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.0609, "livability_transportation": 0.322, "livability_housing": 0.3968, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 46}, {"name": "Oklahoma", "abbr": "OK", "fips": 40, "region": "South", "hybrid": 0.0635, "minmax": 0.2094, "zscore": -0.4911, "domains": [0.2402, 0.3357, 0.4, 0.1036, 0.2557, 0.0762], "indicators": {"avg_monthly_ssi_payment": 0.3561, "caps": 0.2024, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.0736, "ssi_auto_enroll_medicaid": 0.2891, "ssi_criteria_209": 0.0, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.169, "adl_medicaid_coverage_pct": 0.6364, "private_ltci_per1000": 1.0, "smd_demonstration_projects": 0.4737, "initial_ar": 0.0, "reconsidered_ar": 0.0, "total_ar": 0.7419, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.1937, "vr_spending_training": 0.117, "special_ed_policy_score": 0.0, "arp_caregiver_family_support": 0.1326, "arp_waiting_list_diversion": 0.0, "arp_tech_telehealth": 1.0, "arp_cross_sector_investments": 0.2973, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.1043, "livability_transportation": 0.2068, "livability_housing": 0.1743, "section_811_pra": 0.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 47}, {"name": "South Carolina", "abbr": "SC", "fips": 45, "region": "South", "hybrid": 0.0319, "minmax": 0.2879, "zscore": -0.3747, "domains": [0.3815, 0.2542, 0.5, 0.4461, 0.2807, 0.2346], "indicators": {"avg_monthly_ssi_payment": 0.1562, "caps": 0.3684, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.4663, "ssi_auto_enroll_medicaid": 0.4141, "ssi_criteria_209": 0.1466, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.4448, "adl_medicaid_coverage_pct": 0.5, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.0526, "initial_ar": 0.0, "reconsidered_ar": 0.0, "total_ar": 0.2903, "hcbs_expenditure_ratio": 0.5, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 1.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.2511, "vr_spending_training": 0.0872, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.1935, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.3514, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.1391, "livability_transportation": 0.4, "livability_housing": 0.7729, "section_811_pra": 0.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 48}, {"name": "Kentucky", "abbr": "KY", "fips": 21, "region": "South", "hybrid": 0.02, "minmax": 0.2718, "zscore": -0.3828, "domains": [0.375, 0.2538, 0.4, 0.3717, 0.2339, 0.2427], "indicators": {"avg_monthly_ssi_payment": 0.35, "caps": 0.166, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.0, "ssi_auto_enroll_medicaid": 0.0, "ssi_criteria_209": 0.4839, "family_responsibility_class": 0.0, "spousal_impoverishment": 0.0, "medicaid_eligibility_threshold": 0.0, "medically_needy": 0.0, "adl_medicaid_coverage_pct": 0.6818, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.4737, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.129, "hcbs_expenditure_ratio": 1.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.0703, "vr_spending_training": 0.0447, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.2903, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.113, "livability_transportation": 0.2136, "livability_housing": 0.0, "section_811_pra": 1.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 49}, {"name": "Alabama", "abbr": "AL", "fips": 1, "region": "South", "hybrid": -0.0026, "minmax": 0.287, "zscore": -0.542, "domains": [0.43, 0.4614, 0.2, 0.3386, 0.0578, 0.1153], "indicators": {"avg_monthly_ssi_payment": 1.0, "caps": 0.1134, "ui_good_cause_caregiving": 0.5, "buy_in_working_people": 1.0, "subminimum_wage_14c": 0.1656, "ssi_auto_enroll_medicaid": 0.5, "ssi_criteria_209": 0.1613, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.3138, "adl_medicaid_coverage_pct": 0.6364, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.1053, "initial_ar": 1.0, "reconsidered_ar": 0.0, "total_ar": 0.0968, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 0.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.0158, "vr_spending_training": 0.0, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.2509, "arp_waiting_list_diversion": 0.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.0957, "livability_transportation": 0.0373, "livability_housing": 0.539, "section_811_pra": 0.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 50}, {"name": "Tennessee", "abbr": "TN", "fips": 47, "region": "South", "hybrid": -0.0356, "minmax": 0.2679, "zscore": -0.4075, "domains": [0.2548, 0.3666, 0.4, 0.4894, 0.1971, 0.1296], "indicators": {"avg_monthly_ssi_payment": 0.2971, "caps": 0.0567, "ui_good_cause_caregiving": 1.0, "buy_in_working_people": 0.0, "subminimum_wage_14c": 0.0613, "ssi_auto_enroll_medicaid": 0.2891, "ssi_criteria_209": 0.3343, "family_responsibility_class": 0.0, "spousal_impoverishment": 1.0, "medicaid_eligibility_threshold": 1.0, "medically_needy": 0.1621, "adl_medicaid_coverage_pct": 0.4545, "private_ltci_per1000": 0.0, "smd_demonstration_projects": 0.2632, "initial_ar": 0.0, "reconsidered_ar": 0.0, "total_ar": 0.4194, "hcbs_expenditure_ratio": 0.0, "hcbs_user_ratio": 1.0, "pct_ltss_hcbs_older_adults": 0.0, "home_health_aides_per100": 0.0, "hcbs_presumptive_eligibility": 1.0, "vr_spending_career": 0.3257, "vr_spending_training": 0.1426, "special_ed_policy_score": 1.0, "arp_caregiver_family_support": 0.0, "arp_waiting_list_diversion": 1.0, "arp_tech_telehealth": 0.0, "arp_cross_sector_investments": 0.0, "arp_workforce_training": 0.0, "arp_quality_improvement": 0.1826, "livability_transportation": 0.2763, "livability_housing": 0.3716, "section_811_pra": 0.0, "section_811_pct_disability": 0.0, "fema_shmp": 0.0}, "rank": 51}];
+const DOMAINS = [{"name": "Income & Cash Support", "color": "#3b82f6", "keys": ["avg_monthly_ssi_payment", "caps", "ui_good_cause_caregiving", "buy_in_working_people", "subminimum_wage_14c", "ssi_auto_enroll_medicaid", "ssi_criteria_209", "family_responsibility_class"]}, {"name": "Medicaid & Long-Term Care", "color": "#8b5cf6", "keys": ["spousal_impoverishment", "medicaid_eligibility_threshold", "medically_needy", "adl_medicaid_coverage_pct", "private_ltci_per1000", "smd_demonstration_projects", "initial_ar", "reconsidered_ar", "total_ar"]}, {"name": "Home & Community-Based Services", "color": "#10b981", "keys": ["hcbs_expenditure_ratio", "hcbs_user_ratio", "pct_ltss_hcbs_older_adults", "home_health_aides_per100", "hcbs_presumptive_eligibility"]}, {"name": "Employment & Vocational Support", "color": "#f59e0b", "keys": ["vr_spending_career", "vr_spending_training", "special_ed_policy_score"]}, {"name": "ARP / Pandemic Relief", "color": "#ef4444", "keys": ["arp_caregiver_family_support", "arp_waiting_list_diversion", "arp_tech_telehealth", "arp_cross_sector_investments", "arp_workforce_training", "arp_quality_improvement"]}, {"name": "Housing, Accessibility & Education", "color": "#06b6d4", "keys": ["livability_transportation", "livability_housing", "section_811_pra", "section_811_pct_disability", "fema_shmp"]}];
+const LABELS  = {"avg_monthly_ssi_payment": "Avg Monthly SSI Payment", "caps": "SSI State Supplement (CAPS)", "arp_caregiver_family_support": "ARP Caregiver & Family Support", "ui_good_cause_caregiving": "UI Good Cause \u2014 Caregiving", "spousal_impoverishment": "Spousal Impoverishment Protection", "hcbs_expenditure_ratio": "HCBS Expenditure Ratio", "hcbs_user_ratio": "HCBS User Ratio", "pct_ltss_hcbs_older_adults": "LTSS HCBS % (Older Adults)", "home_health_aides_per100": "Home Health Aides per 100k", "arp_waiting_list_diversion": "ARP Waiting List Diversion", "arp_tech_telehealth": "ARP Tech & Telehealth", "arp_cross_sector_investments": "ARP Cross-Sector Investments", "livability_transportation": "Livability \u2014 Transportation", "livability_housing": "Livability \u2014 Housing", "hcbs_presumptive_eligibility": "HCBS Presumptive Eligibility", "section_811_pra": "Section 811 PRA", "vr_spending_career": "VR Spending \u2014 Career", "vr_spending_training": "VR Spending \u2014 Training", "special_ed_policy_score": "Special Education Policy Score", "arp_workforce_training": "ARP Workforce Training", "buy_in_working_people": "Medicaid Buy-In (Working People)", "subminimum_wage_14c": "Sub-minimum Wage (14c) Index", "medicaid_eligibility_threshold": "Medicaid Eligibility Threshold", "ssi_auto_enroll_medicaid": "SSI Auto-Enrollment in Medicaid", "medically_needy": "Medically Needy Program", "ssi_criteria_209": "SSI 209(b) Criteria", "arp_quality_improvement": "ARP Quality Improvement", "smd_demonstration_projects": "SMD Demonstration Projects", "initial_ar": "Initial Approval Rate", "reconsidered_ar": "Reconsidered Approval Rate", "total_ar": "Total Approval Rate", "adl_medicaid_coverage_pct": "ADL Medicaid Coverage %", "private_ltci_per1000": "Private LTC Insurance per 1,000", "section_811_pct_disability": "Section 811 % Disability", "fema_shmp": "FEMA State Hazard Mitigation Plan", "family_responsibility_class": "Family Responsibility Classification"};
+
+// active method
+let activeMethod = 'hybrid';
+
+// FIPS lookup
+const BY_FIPS = new Map(STATES.map(s => [s.fips, s]));
+
+// regional means by method
+function regionMean(region, method) {
+  const ss = STATES.filter(s => s.region === region);
+  return ss.reduce((a,s) => a + s[method], 0) / ss.length;
+}
+
+// ─── COLOR SCALE ─────────────────────────────────────────────────────────────
+// Fixed domain: use a stable reference across all methods for visual consistency
+// but use relative position within the data range for actual coloring
+function getExtent(method) {
+  return d3.extent(STATES, s => s[method]);
+}
+
+function scoreColor(val, method) {
+  const [lo, hi] = getExtent(method);
+  const t = Math.max(0, Math.min(1, (val - lo) / (hi - lo)));
+  return d3.interpolateRgbBasis(
+    ["#7f1d1d","#b91c1c","#f87171","#fde68a","#4ade80","#16a34a","#052e16"]
+  )(t);
+}
+
+function domainColor(val) {
+  return d3.interpolateRgb("#f87171","#34d399")(Math.min(Math.max(val,0),1));
+}
+
+// ─── MAP ─────────────────────────────────────────────────────────────────────
+let mapG = null;
+
+async function initMap() {
+  const us = await d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json");
+  const wrap = document.getElementById("map-col");
+  const svg  = d3.select("#map-svg");
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight - 40 - 38; // minus header and legend
+
+  svg.attr("viewBox", `0 0 ${W} ${H}`);
+
+  const features = topojson.feature(us, us.objects.states).features;
+  const proj = d3.geoAlbersUsa()
+    .fitExtent([[24, 32], [W-24, H-28]], { type:"FeatureCollection", features });
+  const path = d3.geoPath().projection(proj);
+
+  mapG = svg.append("g");
+
+  mapG.selectAll(".state-path")
+    .data(features)
+    .join("path")
+    .attr("class","state-path")
+    .attr("d", path)
+    .attr("fill", d => {
+      const s = BY_FIPS.get(parseInt(d.id));
+      return s ? scoreColor(s[activeMethod], activeMethod) : "#1c2230";
+    })
+    .attr("stroke","#0c0f14")
+    .attr("stroke-width", 0.7)
+    .on("mousemove", (ev, d) => {
+      const s = BY_FIPS.get(parseInt(d.id));
+      if (!s) return;
+      const tt = document.getElementById("tooltip");
+      const score = s[activeMethod];
+      tt.innerHTML = `<strong>${s.name}</strong><span class="tt-score"> ${score >= 0 ? "" : ""}${score.toFixed(3)}</span><br><span class="tt-rank">#${s.rank} of 51 nationally</span>`;
+      tt.style.opacity = "1";
+      tt.style.left = (ev.clientX + 14) + "px";
+      tt.style.top  = (ev.clientY - 36) + "px";
+    })
+    .on("mouseleave", () => {
+      document.getElementById("tooltip").style.opacity = "0";
+    })
+    .on("click", (ev, d) => {
+      const s = BY_FIPS.get(parseInt(d.id));
+      if (!s) return;
+      mapG.selectAll(".state-path").classed("selected", false);
+      d3.select(ev.currentTarget).classed("selected", true);
+      openPanel(s);
+    });
+
+  // State borders
+  mapG.append("path")
+    .datum(topojson.mesh(us, us.objects.states, (a,b) => a !== b))
+    .attr("fill","none")
+    .attr("stroke","rgba(12,15,20,0.8)")
+    .attr("stroke-width", 0.5)
+    .attr("d", path)
+    .attr("pointer-events","none");
+
+  buildLegend();
+}
+
+function recolorMap() {
+  if (!mapG) return;
+  mapG.selectAll(".state-path")
+    .attr("fill", d => {
+      const s = BY_FIPS.get(parseInt(d.id));
+      return s ? scoreColor(s[activeMethod], activeMethod) : "#1c2230";
+    });
+  buildLegend();
+  // Update legend label
+  const labels = {hybrid:"SDPI Hybrid",minmax:"SDPI Min-Max",zscore:"SDPI Z-Score"};
+  document.getElementById("legend-method").textContent = labels[activeMethod];
+}
+
+function buildLegend() {
+  const svg = d3.select("#legend-grad");
+  svg.selectAll("*").remove();
+  const W = 160, H = 10;
+  const defs = svg.append("defs");
+  const lg = defs.append("linearGradient").attr("id","lg");
+  const [lo,hi] = getExtent(activeMethod);
+  for (let i = 0; i <= 20; i++) {
+    const t = i/20;
+    lg.append("stop").attr("offset",`${t*100}%`)
+      .attr("stop-color", scoreColor(lo + t*(hi-lo), activeMethod));
+  }
+  svg.append("rect").attr("width",W).attr("height",H).attr("rx",3).attr("fill","url(#lg)");
+}
+
+// ─── METHOD TOGGLE ───────────────────────────────────────────────────────────
+document.querySelectorAll(".method-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".method-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeMethod = btn.dataset.method;
+    // re-rank by active method
+    const sorted = [...STATES].sort((a,b) => b[activeMethod]-a[activeMethod]);
+    sorted.forEach((s,i) => s.rank = i+1);
+    recolorMap();
+  });
+});
+
+// ─── PANEL ───────────────────────────────────────────────────────────────────
+function openPanel(s) {
+  document.getElementById("p-region").textContent = s.region + " Region";
+  document.getElementById("p-name").textContent = s.name;
+
+  const scoreEl = document.getElementById("p-score");
+  const score = s[activeMethod];
+  scoreEl.textContent = score.toFixed(3);
+  scoreEl.style.color = scoreColor(score, activeMethod);
+  document.getElementById("p-score-label").textContent =
+    {hybrid:"Hybrid SDPI",minmax:"Min-Max SDPI",zscore:"Z-Score SDPI"}[activeMethod];
+
+  document.getElementById("p-rank").textContent = `#${s.rank} of 51 nationally`;
+
+  const rm = regionMean(s.region, activeMethod);
+  const diff = score - rm;
+  document.getElementById("p-region-compare").textContent =
+    `Regional mean: ${rm.toFixed(3)} (${diff>=0?"+":""}${diff.toFixed(3)})`;
+
+  // All 3 methods chips
+  const methEl = document.getElementById("p-methods");
+  methEl.innerHTML = "";
+  [{k:"hybrid",l:"Hybrid"},{k:"minmax",l:"Min-Max"},{k:"zscore",l:"Z-Score"}].forEach(m => {
+    const v = s[m.k];
+    const chip = document.createElement("div");
+    chip.className = "p-method-chip";
+    chip.innerHTML = `${m.l}: <span style="color:${scoreColor(v,m.k)}">${v.toFixed(3)}</span>`;
+    methEl.appendChild(chip);
+  });
+
+  // Domain bars
+  const domsEl = document.getElementById("p-domains");
+  domsEl.innerHTML = "";
+  DOMAINS.forEach((dom, i) => {
+    const val = s.domains[i];
+    const c = domainColor(val);
+    const block = document.createElement("div");
+    block.className = "domain-block";
+    block.innerHTML = `
+      <div class="domain-hdr">
+        <span class="domain-name" style="color:${dom.color}">${dom.name}</span>
+        <span class="domain-score-val">${val.toFixed(3)}</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${val*100}%;background:${c}"></div>
+      </div>
+      <div class="ind-list">
+        ${dom.keys.map(k => {
+          const v = s.indicators[k];
+          const ic = domainColor(v);
+          return `<div class="ind-row">
+            <div class="ind-dot" style="background:${ic}"></div>
+            <span class="ind-name">${LABELS[k]||k}</span>
+            <div class="ind-bar-wrap">
+              <div class="ind-bar" style="width:${v*100}%;background:${ic}"></div>
+            </div>
+            <span class="ind-val" style="color:${ic}">${v.toFixed(3)}</span>
+          </div>`;
+        }).join("")}
+      </div>`;
+    domsEl.appendChild(block);
+  });
+
+  // All indicators section (already shown in domain blocks above)
+  document.getElementById("p-indicators").innerHTML =
+    `<p style="font-size:0.75rem;color:var(--ink3);font-style:italic">
+      All 36 indicators are displayed within the domain sections above.
+    </p>`;
+
+  document.getElementById("panel").classList.add("open");
+}
+
+function closePanel() {
+  document.getElementById("panel").classList.remove("open");
+  if (mapG) mapG.selectAll(".state-path").classed("selected", false);
+}
+
+document.getElementById("panel-close-btn").addEventListener("click", closePanel);
+document.addEventListener("click", e => {
+  const panel = document.getElementById("panel");
+  const mapCol = document.getElementById("map-col");
+  if (panel.classList.contains("open") &&
+      !panel.contains(e.target) &&
+      !mapCol.contains(e.target)) {
+    closePanel();
+  }
+});
+
+// ─── DOMAIN PILLS ────────────────────────────────────────────────────────────
+const pillsEl = document.getElementById("domain-pills");
+DOMAINS.forEach(d => {
+  const chip = document.createElement("div");
+  chip.className = "domain-chip";
+  chip.innerHTML = `<div class="domain-dot" style="background:${d.color}"></div>${d.name}`;
+  pillsEl.appendChild(chip);
+});
+
+// ─── BOOT ────────────────────────────────────────────────────────────────────
+initMap().catch(err => {
+  document.getElementById("map-col").innerHTML =
+    `<p style="color:var(--ink2);padding:3rem;text-align:center">
+      Map could not load. Check your internet connection.<br>
+      <small style="color:var(--ink3)">${err.message}</small>
+    </p>`;
+});
+</script>
+</body>
+</html>
