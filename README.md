@@ -83,26 +83,3 @@ No CLI or build tools required — this is a single static HTML file.
 Update the link at the top of this README with your Vercel URL once it's live.
 
 ---
-
-## Tech Stack
-
-| Tool | Purpose |
-|------|---------|
-| [D3.js v7](https://d3js.org) | Choropleth map, color scales, data binding |
-| [TopoJSON v3](https://github.com/topojson/topojson) | US state boundary geometries |
-| [us-atlas](https://github.com/topojson/us-atlas) | TopoJSON data (loaded from CDN) |
-| Google Fonts | DM Serif Display, DM Sans, DM Mono |
-
-Zero build step. No Node.js, no npm, no bundler. Open `index.html` in a browser and it works.
-
----
-
-## Citation
-
-> Lee, C. (2026). *State Disability Policy Index: A 36-Indicator Composite Measure of Disability Policy Generosity across U.S. States.* QSS 20 Final Project, Dartmouth College.
-
----
-
-## License
-
-Data compiled from public government sources. Code released under MIT License.
