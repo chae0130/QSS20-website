@@ -4,7 +4,7 @@
 
 An interactive data visualization exploring disability policy generosity across all 50 U.S. states and the District of Columbia, built from 36 verified policy indicators across 6 domains.
 
-🔗 **[Live Site →](https://your-site.vercel.app)** *(update after deploying)*
+🔗 **[Live Site →](https://qss-20-website.vercel.app/)** 
 
 ---
 
